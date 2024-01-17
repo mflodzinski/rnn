@@ -1,0 +1,55 @@
+data:
+    name: timit
+    batch_size: 1
+    win_size: 400
+    hop_size: 160
+    sample_rate: 16000
+    n_mfcc: 13
+    num_mel_bins: 23
+    center: False
+    separator: '_'
+model:
+    enc:
+        type: lstm
+        hidden_size: 128
+        output_size: 31
+        n_layers: 2
+        bidirectional: True
+        dropout: 0.2
+    dec:
+        type: lstm
+        hidden_size: 128
+        output_size: 31
+        n_layers: 1
+        dropout: 0.2
+    joint:
+        inner_size: 62
+        input_size: 31
+
+    vocab_size: 31
+    feature_dim: 26
+    blank: 30
+    max_length: 85
+    device: 'cuda'
+training:
+    load_model: 'timit/rnnt/2enc1dec.chkpt'
+    load_encoder: False
+    load_decoder: False
+    eval_or_not: True
+    seed: 42
+    num_gpu: 1
+    epochs: 200
+    max_grad_norm: 100
+    visualization: True
+    show_interval: 5
+    save_model: rnnt
+    save_every: 10
+optim:
+    type: sgd
+    lr: 0.0001
+    momentum: 0.9
+    decay_ratio: 0.8
+    weight_decay: 0
+    begin_to_adjust_lr: 200
+    adjust_every: 15
+    nesterov: True 
