@@ -5,6 +5,7 @@ data:
     hop_size: 160
     sample_rate: 16000
     n_mfcc: 13
+    delta_coeffs: 13
     num_mel_bins: 23
     center: False
     separator: '_'
@@ -15,16 +16,16 @@ model:
         output_size: 31
         n_layers: 2
         bidirectional: True
-        dropout: 0.2
+        dropout: 0.3
     dec:
         type: lstm
-        hidden_size: 128
+        hidden_size: 96
         output_size: 31
         n_layers: 1
-        dropout: 0.2
+        dropout: 0
     joint:
         inner_size: 62
-        input_size: 31
+        input_size: 62
 
     vocab_size: 31
     feature_dim: 26
@@ -32,24 +33,24 @@ model:
     max_length: 85
     device: 'cuda'
 training:
-    load_model: 'timit/rnnt/2enc1dec.chkpt'
+    load_model: 'timit/rnnt/rnnt.epoch40.chkpt'
     load_encoder: False
     load_decoder: False
     eval_or_not: True
     seed: 42
     num_gpu: 1
     epochs: 200
-    max_grad_norm: 100
+    max_grad_norm: 50
     visualization: True
-    show_interval: 5
+    show_interval: 10
     save_model: rnnt
     save_every: 10
 optim:
     type: sgd
-    lr: 0.0001
+    lr: 0.001
     momentum: 0.9
     decay_ratio: 0.8
     weight_decay: 0
-    begin_to_adjust_lr: 200
-    adjust_every: 15
+    begin_to_adjust_lr: 20
+    adjust_every: 20
     nesterov: True 
