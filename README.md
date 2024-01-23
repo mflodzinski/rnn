@@ -19,7 +19,7 @@ files:
   - tokenizer.json - plik przypisujący każdemu znakowi odmiennego indeksu
 
 rnnt:
-  - beam_search.py - dekodowanie przeszukiwaniemm ścieżki
+  - beam_search.py - dekodowanie przeszukiwaniem ścieżki
   - data.py - przetwarzanie nagrać na cechy MFCC, iterator danych
   - decoder.py - moduł dekodera architektury RNN-T
   - encoder.py - moduł enkodera architektury RNN-T
