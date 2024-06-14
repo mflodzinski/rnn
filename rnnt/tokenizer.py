@@ -1,41 +1,29 @@
-from typing import Union
-from os import PathLike
-import json
-
-
-class JSONLoader:
-    def __init__(self, file_path: Union[str, PathLike]) -> None:
-        self.file_path = file_path
-
-    def load(self):
-        with open(self.file_path, "r") as f:
-            data = json.load(f)
-        return data
+import pandas as pd
 
 
 class CharTokenizer:
-    def __init__(self):
-        self._token_to_id = dict()
-        self._id_to_token = dict()
-        self.special_tokens = dict()
+    def __init__(self, transcript_path):
+        self.special_tokens = {
+            "pad": "_",
+            "sos": ">",
+            "eos": "<",
+            "phi": "|",
+        }
+        self.vocab = self.get_vocab(transcript_path)
+        self.stoi = {s: i for i, s in enumerate(self.vocab)}
+        self.itos = {i: s for s, i in self.stoi.items()}
+        self.vocab_size = len(self.stoi)
 
-    def vocab_size(self):
-        return len(self._token_to_id)
-
-    def load_tokenizer(self, tokenizer_path):
-        data = JSONLoader(tokenizer_path).load()
-        self._token_to_id = data["token_to_id"]
-        self.special_tokens = data["special_tokens"]
-        self._id_to_token = {value: key for key, value in self._token_to_id.items()}
-        return self
+    def get_vocab(self, transcript_path):
+        df = pd.read_csv(transcript_path)
+        all_txt = df["transcript"].str.cat(sep="")
+        vocab = sorted(list(set(all_txt)))
+        vocab.insert(0, self.special_tokens["pad"])
+        vocab += list(self.special_tokens.values())[1:]
+        return vocab
 
     def ids2tokens(self, ids):
-        tokens = []
-        for row_ids in ids:
-            row_tokens = [self._id_to_token[id] for id in row_ids]
-            tokens.append(row_tokens)
+        return [self.itos[i] for i in ids]
 
-        return tokens
-
-    def tokens2ids(self, sentence):
-        return [self._token_to_id[token] for token in sentence]
+    def tokens2ids(self, tokens):
+        return [self.stoi[s] for s in tokens]

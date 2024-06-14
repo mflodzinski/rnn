@@ -1,5 +1,6 @@
 {
     "python.analysis.extraPaths": [
         "./warp-transducer/pytorch_binding"
-    ]
+    ],
+    "git.ignoreLimitWarning": true
 }

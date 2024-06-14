@@ -3,15 +3,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from encoder import build_encoder
 from decoder import build_decoder
-from warprnnt_pytorch import RNNTLoss
+
 
 class JointNet(nn.Module):
-    def __init__(self, input_size, inner_dim, vocab_size):
+    def __init__(self, inner_size, vocab_size):
         super(JointNet, self).__init__()
-
-        # self.forward_layer = nn.Linear(input_size, inner_dim, bias=True)
-        #self.tanh = nn.Tanh()
-        #self.project_layer = nn.Linear(input_size, vocab_size, bias=True)
+        self.proj = nn.Linear(inner_size, vocab_size)
 
     def forward(self, enc_state, dec_state):
         if enc_state.dim() == 3 and dec_state.dim() == 3:
@@ -25,80 +22,78 @@ class JointNet(nn.Module):
             dec_state = dec_state.repeat([1, t, 1, 1])
         else:
             assert enc_state.dim() == dec_state.dim()
-        
-        outputs = enc_state + dec_state
-        #concat_state = torch.cat((enc_state, dec_state), dim=-1)
-        #outputs = self.tanh(outputs)
-        #outputs = self.project_layer(outputs)
+
+        # TODO concat or add
+        concat_state = torch.cat((enc_state, dec_state), dim=-1)
+        outputs = self.proj(concat_state)
         return outputs
 
 
 class Transducer(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config, vocab_size, device):
         super(Transducer, self).__init__()
         self.config = config
+        self.device = device
         self.encoder = build_encoder(config)
-        self.decoder = build_decoder(config)
+        self.decoder = build_decoder(config, vocab_size)
 
         self.joint = JointNet(
-            input_size=config.joint.input_size,
-            inner_dim=config.joint.inner_size,
-            vocab_size=config.vocab_size
-            )
+            inner_size=config.joint.inner_size,
+            vocab_size=vocab_size,
+        )
+        self.blank = vocab_size - 1
+        try:
+            from warprnnt_pytorch import RNNTLoss
 
-        self.crit = RNNTLoss(blank=config.blank,reduction='mean')
+            self.crit = RNNTLoss(blank=self.blank, reduction="mean")
+        except ImportError:
+            self.crit = None
 
     def forward(self, inputs, inputs_length, targets, targets_length):
 
         enc_state, _ = self.encoder(inputs, inputs_length)
-        concat_targets = F.pad(targets, pad=(1, 0, 0, 0), value=self.config.blank)
+        concat_targets = F.pad(targets, pad=(1, 0, 0, 0), value=self.blank)
         dec_state, _ = self.decoder(concat_targets, targets_length.add(1))
 
         logits = self.joint(enc_state, dec_state)
         loss = self.crit(logits, targets.contiguous(), inputs_length, targets_length)
         return loss
 
-
+    @torch.no_grad()
     def recognize(self, inputs, input_lengths):
-        results = list()
-        blank = self.config.blank
-        zero_token = torch.LongTensor([[blank]])
-        if inputs.dim() == 2:
-            batch_size = 1
-        else:
-            batch_size = inputs.dim()
+        zero_token = torch.tensor([self.blank], device=self.device)
+        batch_size = inputs.shape[0]
 
-        f, _ = self.encoder(inputs, input_lengths)
-        if inputs.is_cuda:
-            zero_token = zero_token.cuda()
+        encoded_sequences, _ = self.encoder(inputs, input_lengths)
+        decoded_sequences = [
+            self.decode_sequence(
+                encoded_sequences[i], input_lengths[i], zero_token
+            )
+            for i in range(batch_size)
+        ]
 
-        def decode(inputs, lengths):
-            token_list = []
-            u = 0
-            t = 0
-            gu, hidden = self.decoder(zero_token)
-            umax = self.config.max_length
+        return decoded_sequences
 
-            while t < lengths and u < umax:
-                h = self.joint(inputs[t].view(-1), gu.view(-1))
-                out = F.log_softmax(h, dim=0)
-                _, pred = torch.max(out, dim=0)
-                pred = int(pred.item())
+    @torch.no_grad()
+    def decode_sequence(self, encoded_sequence, input_length, zero_token):
+        preds = []
+        u = 0
+        t = 0
+        u_max = self.config.max_length
+        gu, hidden = self.decoder(zero_token)
 
-                if pred != blank:
-                    token_list.append(pred)
-                    token = torch.LongTensor([[pred]])
-                    if zero_token.is_cuda:
-                        token = token.cuda()
-                    gu, hidden = self.decoder(token, hidden=hidden)
-                    u += 1
-                else:
-                    t += 1
+        while t < input_length and u < u_max:
+            h = self.joint(encoded_sequence[t].view(-1), gu.view(-1))
+            out = F.log_softmax(h, dim=0)
+            _, pred = torch.max(out, dim=0)
+            pred = int(pred.item())
 
-            return token_list
+            if pred != self.blank:
+                preds.append(pred)
+                token = torch.tensor([pred], device=self.device)
+                gu, hidden = self.decoder(token, hidden=hidden)
+                u += 1
+            else:
+                t += 1
 
-        for i in range(batch_size):
-            decoded_seq = decode(f[i], input_lengths[i])
-            results.append(decoded_seq)
-
-        return results
+        return preds

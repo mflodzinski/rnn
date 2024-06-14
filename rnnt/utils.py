@@ -1,11 +1,23 @@
-import torch
+from pathlib import Path
+from typing import Union
+from logging import Logger
 import logging
-import editdistance
-import pandas as pd
 import os
 
-class AttrDict(dict):
+import torch.backends
+import torch.backends.mps
+from torch.utils.tensorboard import SummaryWriter
+import yaml
+import torch
+import editdistance
 
+from data import DataLoader, AudioProcessor, TextProcessor
+from optim import Optimizer
+from model import Transducer
+from tokenizer import CharTokenizer
+
+
+class AttrDict(dict):
     def __init__(self, *args, **kwargs):
         super(AttrDict, self).__init__(*args, **kwargs)
 
@@ -29,7 +41,7 @@ def init_logger(log_file=None):
     console_handler.setFormatter(log_format)
     logger.handlers = [console_handler]
 
-    if log_file and log_file != '':
+    if log_file and log_file != "":
         file_handler = logging.FileHandler(log_file)
         file_handler.setFormatter(log_format)
         logger.addHandler(file_handler)
@@ -42,128 +54,147 @@ def computer_cer(preds, labels):
     return dist, total
 
 
-
-def count_parameters(model):
+def count_parameters(model: Transducer):
     n_params = sum([p.nelement() for p in model.parameters()])
     enc = 0
     dec = 0
     for name, param in model.named_parameters():
-        if 'encoder' in name:
+        if "encoder" in name:
             enc += param.nelement()
-        elif 'decoder' in name:
+        elif "decoder" in name:
             dec += param.nelement()
     return n_params, enc, dec
 
 
-
-def init_parameters(model, type='xnormal'):
+def init_parameters(model: Transducer, type: str = "uniform"):
     for p in model.parameters():
-        if p.dim() > 1:
-            if type == 'xnoraml':
+        if p.dim() >= 2:
+            if type == "xnoraml":
                 torch.nn.init.xavier_normal_(p)
-            elif type == 'uniform':
+            elif type == "uniform":
                 torch.nn.init.uniform_(p, -0.1, 0.1)
 
 
-def save_model(model, optimizer, config, save_name):
-    multi_gpu = True if config.training.num_gpu > 1 else False
+def save_model(model: Transducer, save_name: str):
     checkpoint = {
-        'encoder': model.module.encoder.state_dict() if multi_gpu else model.encoder.state_dict(),
-        'decoder': model.module.decoder.state_dict() if multi_gpu else model.decoder.state_dict(),
-        'joint': model.module.joint.state_dict() if multi_gpu else model.joint.state_dict(),
-        'optimizer': optimizer.state_dict(),
-        'epoch': optimizer.current_epoch,
-        'step': optimizer.global_step
+        "encoder": (model.encoder.state_dict()),
+        "decoder": (model.decoder.state_dict()),
+        "joint": (model.joint.state_dict()),
     }
     torch.save(checkpoint, save_name)
 
 
-def shuffle_csv(file_path):
-    if os.path.exists(file_path):
-        df = pd.read_csv(file_path)
-        df_shuffled = df.sample(frac=1).reset_index(drop=True)
-        df_shuffled.to_csv(file_path, index=False)
-        return file_path
+def remove_special_tokens(sequences: list[list[int]], special_tokens: list[int]):
+    return [
+        [token for token in sequence if token not in special_tokens]
+        for sequence in sequences
+    ]
+
+
+def load_config(config_path: Union[Path, str]):
+    with open(config_path) as file:
+        config = AttrDict(yaml.load(file, Loader=yaml.FullLoader))
+    return config
+
+
+def setup_logger(config: AttrDict):
+    return init_logger(os.path.join(config.data.exp_name, "logger"))
+
+
+def setup_device(logger: Logger):
+    device = "cpu"
+    if torch.cuda.is_available():
+        device = "cuda"
+    elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        device = "mps"
+    logger.info(f"# the device is: {device}")
+    return torch.device(device)
+
+
+def log_model_parameters(model: Transducer, logger: Logger):
+    n_params, enc, dec = count_parameters(model)
+    logger.info(f"# the number of parameters in the Model: {n_params}")
+    logger.info(f"# the number of parameters in the Encoder: {enc}")
+    logger.info(f"# the number of parameters in the Decoder: {dec}")
+    logger.info(f"# the number of parameters in the JointNet: {n_params - enc - dec}")
+
+
+def create_visualizer(config: AttrDict, logger: Logger):
+    if config.training.visualization:
+        visualizer = SummaryWriter(os.path.join(config.data.exp_name, "visualizer"))
+        logger.info("# created a visualizer")
     else:
-        return "File not found. Please check the file path."
-
-def check_row_count(df):
-    counter = {}
-
-    for idx, row in df.iterrows():
-        text = row["text"]
-        if text not in counter:
-            counter[text] = 1
-        else:
-            counter[text] += 1
-
-    sorted_dict_by_values = {k: v for k, v in sorted(counter.items(), key=lambda item: item[1])}
-
-    for k, v in sorted_dict_by_values.items():
-        print(k, v, '\n')
+        visualizer = None
+    return visualizer
 
 
-def check_num_speakers(df):
-    speakers = []
-    for idx, row in df.iterrows():
-        speaker = row['audio_path'].split('/')[3]
-        if speaker not in speakers:
-            speakers.append(speaker)
-    print(speakers)
-    print(len(speakers))
-
-def check_num_audios(df):
-    audios = []
-    for idx, row in df.iterrows():
-        audio = row['audio_path'].split('/')[4]
-        if audio not in audios:
-            audios.append(audio)
-    print(audios)
-    print(len(audios))
-
-def check_num_texts(df):
-    texts = []
-    for idx, row in df.iterrows():
-        text = row['text']
-        if text not in texts:
-            print(text)
-            texts.append(text)
-    print(len(texts))
+def save_model_checkpoint(
+    model: Transducer, epoch: int, config: AttrDict, logger: Logger
+):
+    save_name = os.path.join(config.data.exp_name, f"{epoch}.epoch")
+    save_model(model, save_name)
+    logger.info(f"Epoch {epoch} model has been saved.")
 
 
-def sort_csv_by_age(input_file, output_file):
-    df = pd.read_csv(input_file)
-    df_sorted = df.sort_values(by='duration')
-    df_sorted.to_csv(output_file, index=False)
+def initialize_model(
+    config: AttrDict, vocab_size: int, device: Union[str, torch.device]
+):
+    model = Transducer(config.model, vocab_size, device)
+    if config.training.load_model:
+        checkpoint = torch.load(config.training.load_model)
+        model.encoder.load_state_dict(checkpoint["encoder"])
+        model.decoder.load_state_dict(checkpoint["decoder"])
+        model.joint.load_state_dict(checkpoint["joint"])
+    else:
+        init_parameters(model, type="uniform")
+    model = torch.compile(model)
+    model.to(device)
+    return model
 
 
-def extract_core_test_set():
-    df = pd.read_csv('files/original_test_set.csv')
-    df['audio_identifier'] = df['audio_path'].apply(lambda x: x.split('/')[-1].split('.')[0])
+def adjust_learning_rate(
+    optimizer: Optimizer, epoch: int, config: AttrDict, logger: Logger
+):
+    if (
+        epoch >= config.optim.begin_to_adjust_lr
+        and epoch % config.optim.adjust_every == 0
+    ):
+        optimizer.decay_lr()
+        if optimizer.lr < 1e-6:
+            logger.info("The learning rate is too low to train.")
+            return
+        logger.info(f"Epoch {epoch} update learning rate: {optimizer.lr:.6f}")
 
-    # Define the list of speakers for the core test set
-    speakers = ['DAB0', 'TAS1', 'JMP0', 'LLL0', 'BPM0', 'CMJ0', 'GRT0', 'JLN0',
-                'WBT0', 'WEW0', 'LNT0', 'TLS0', 'KLT0', 'JDH0', 'NJM0', 'PAM0',
-                'ELC0', 'PAS0', 'PKT0', 'JLM0', 'NLP0', 'MGD0', 'DHC0', 'MLD0']
+def create_optimizer(model: Transducer, config: AttrDict):
+    return Optimizer(model, config)
+    
+def prepare_data_loaders(config: AttrDict, logger: Logger):
+    tokenizer = CharTokenizer(
+        os.path.join(config.data.name, config.data.core_train)
+    )
+    audio_processor = AudioProcessor(config.data)
+    text_processor = TextProcessor(tokenizer)
 
-    # Filter rows
-    rows = []
-    for _, row in df.iterrows():
-        path = row['audio_path']
-        speaker, sentence = path.split('/')[3], path.split('/')[4]
-        print(speaker)
-        if speaker[1:] in speakers and not sentence.startswith('SA'):
-            rows.append(row)
+    train_data = DataLoader(
+        os.path.join(config.data.name, config.data.core_train),
+        config.training.batch_size,
+        audio_processor,
+        text_processor,
+    )
+    test_data = DataLoader(
+        os.path.join(config.data.name, config.data.core_test),
+        config.training.batch_size,
+        audio_processor,
+        text_processor,
+    )
+    val_data = DataLoader(
+        os.path.join(config.data.name, config.data.core_val),
+        config.training.batch_size,
+        audio_processor,
+        text_processor,
+    )
+    logger.info(f'# train data length: {train_data.num_examples}')
+    logger.info(f'# test data length: {test_data.num_examples}')
+    logger.info(f'# val data length: {val_data.num_examples}')
 
-    # Create a new DataFrame from the filtered rows
-    new_df = pd.DataFrame(rows, columns=df.columns)
-
-    # Save the new DataFrame to a CSV file without the index
-    new_df.to_csv('files/core_test_set.csv', index=False)
-
-
-
-if __name__ == '__main__':
-    from tensorboard import notebook
-    log_dir = 'timit/rnnt/log'
-    notebook.start("--logdir=" + log_dir)
+    return train_data, test_data, val_data, tokenizer

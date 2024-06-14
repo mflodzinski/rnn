@@ -1,10 +1,10 @@
-import torch.optim as optim
-import torch
+from torch import optim
+
 
 class Optimizer(object):
-    def __init__(self, parameters, config):
+    def __init__(self, model, config):
         self.config = config
-        self.optimizer = build_optimizer(parameters, config)
+        self.optimizer = build_optimizer(model, config)
         self.global_step = 1
         self.current_epoch = 0
         self.lr = config.lr
@@ -30,46 +30,37 @@ class Optimizer(object):
     def decay_lr(self):
         self.lr *= self.decay_ratio
         for param_group in self.optimizer.param_groups:
-            param_group['lr'] = self.lr
+            param_group["lr"] = self.lr
 
 
-def build_optimizer(parameters, config):
-    if config.type == 'adam':
-        return optim.Adam(
-            parameters,
-            lr=config.lr,
-            betas=(0.9, 0.98),
-            eps=1e-08,
-            weight_decay=config.weight_decay
+def get_optim_groups(model, weight_decay):
+    parameters = [p for p in model.parameters() if p.requires_grad]
+    decay_params = [p for p in parameters if p.dim() >= 2]
+    nondecay_params = [p for p in parameters if p.dim() < 2]
+    return [
+        {"params": decay_params, "weight_decay": weight_decay},
+        {"params": nondecay_params, "weight_decay": 0.0},
+    ]
+
+
+def build_optimizer(model, config):
+    params = get_optim_groups(model, config.weight_decay)
+    if config.type == "adamw":
+        return optim.AdamW(
+            params=params,
+            weight_decay=config.weight_decay,
+            lr=float(config.lr),
+            betas=tuple(config.betas),
+            eps=float(config.eps),
+            fused=config.fused,
         )
-    elif config.type == 'sgd':
+    elif config.type == "sgd":
         return optim.SGD(
-            params=parameters,
-            lr=config.lr,
+            params=params,
+            weight_decay=config.weight_decay,
+            lr=float(config.lr),
             momentum=config.momentum,
             nesterov=config.nesterov,
-            weight_decay=config.weight_decay
-        )
-    elif config.type == 'adadelta':
-        return optim.Adadelta(
-            params=parameters,
-            lr=config.lr,
-            rho=config.rho,
-            eps=config.eps,
-            weight_decay=config.weight_decay
         )
     else:
         raise NotImplementedError
-
-def optimizer_to(optim, device):
-    for param in optim.state.values():
-        if isinstance(param, torch.Tensor):
-            param.data = param.data.to(device)
-            if param._grad is not None:
-                param._grad.data = param._grad.data.to(device)
-        elif isinstance(param, dict):
-            for subparam in param.values():
-                if isinstance(subparam, torch.Tensor):
-                    subparam.data = subparam.data.to(device)
-                    if subparam._grad is not None:
-                        subparam._grad.data = subparam._grad.data.to(device)

@@ -1,56 +1,57 @@
 data:
-    name: timit
-    batch_size: 1
+    name: ../timit
+    exp_name: info
+    window_type: hamming
     win_size: 400
     hop_size: 160
-    sample_rate: 16000
-    n_mfcc: 13
-    delta_coeffs: 13
-    num_mel_bins: 23
-    center: False
-    separator: '_'
+    num_ceps: 13
+    num_mel_bins: 26
+    train_data: train_data.csv
+    test_data: test_data.csv
+    core_train: _core_train.csv
+    core_test: _core_test.csv
+    core_val: _core_val.csv
+    
 model:
+    max_length: 150
+    num_features: 26
     enc:
         type: lstm
         hidden_size: 128
-        output_size: 31
-        n_layers: 2
+        output_size: 30
+        num_layers: 2
         bidirectional: True
-        dropout: 0.3
+        dropout: 0.2
     dec:
         type: lstm
-        hidden_size: 96
-        output_size: 31
-        n_layers: 1
+        hidden_size: 128
+        output_size: 30
+        num_layers: 1
         dropout: 0
     joint:
-        inner_size: 62
-        input_size: 62
+        inner_size: 60
 
-    vocab_size: 31
-    feature_dim: 26
-    blank: 30
-    max_length: 85
-    device: 'cuda'
 training:
-    load_model: 'timit/rnnt/rnnt.epoch40.chkpt'
-    load_encoder: False
-    load_decoder: False
-    eval_or_not: True
     seed: 42
-    num_gpu: 1
+    batch_size: 2
     epochs: 200
-    max_grad_norm: 50
-    visualization: True
-    show_interval: 10
-    save_model: rnnt
+    max_grad_norm: 10
+    show_every: 10
     save_every: 10
+    load_model: False
+    evaluate: True
+    visualization: True
+
 optim:
-    type: sgd
-    lr: 0.001
-    momentum: 0.9
-    decay_ratio: 0.8
-    weight_decay: 0
     begin_to_adjust_lr: 20
     adjust_every: 20
+    decay_ratio: 0.8
+    type: sgd
+    lr: 1e-4
+    momentum: 0.9
+    weight_decay: 0.01
+    betas: (0.9, 0.999)
+    eps: 1e-08
     nesterov: True 
+    fused: True
+
