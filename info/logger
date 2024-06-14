@@ -8,3 +8,18 @@
 [2024-06-14 19:45:29,112 INFO] # the number of parameters in the Encoder: 562748
 [2024-06-14 19:45:29,112 INFO] # the number of parameters in the Decoder: 85790
 [2024-06-14 19:45:29,112 INFO] # the number of parameters in the JointNet: 1891
+[2024-06-14 19:46:40,664 INFO] # the device is: mps
+[2024-06-14 19:46:40,750 INFO] # the number of parameters in the Model: 650429
+[2024-06-14 19:46:40,750 INFO] # the number of parameters in the Encoder: 562748
+[2024-06-14 19:46:40,750 INFO] # the number of parameters in the Decoder: 85790
+[2024-06-14 19:46:40,750 INFO] # the number of parameters in the JointNet: 1891
+[2024-06-14 20:21:51,495 INFO] # the device is: mps
+[2024-06-14 20:21:51,594 INFO] # the number of parameters in the Model: 650429
+[2024-06-14 20:21:51,594 INFO] # the number of parameters in the Encoder: 562748
+[2024-06-14 20:21:51,594 INFO] # the number of parameters in the Decoder: 85790
+[2024-06-14 20:21:51,594 INFO] # the number of parameters in the JointNet: 1891
+[2024-06-14 21:11:02,069 INFO] # the device is: mps
+[2024-06-14 21:11:02,090 INFO] # the number of parameters in the Model: 650429
+[2024-06-14 21:11:02,090 INFO] # the number of parameters in the Encoder: 562748
+[2024-06-14 21:11:02,090 INFO] # the number of parameters in the Decoder: 85790
+[2024-06-14 21:11:02,090 INFO] # the number of parameters in the JointNet: 1891
