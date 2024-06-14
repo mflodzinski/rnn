@@ -505,3 +505,12 @@
 [2024-06-13 19:42:12,624 INFO] # the number of parameters in the Encoder: 562748
 [2024-06-13 19:42:12,624 INFO] # the number of parameters in the Decoder: 85790
 [2024-06-13 19:42:12,624 INFO] # the number of parameters in the JointNet: 1891
+[2024-06-14 19:42:25,049 INFO] # created a visualizer
+[2024-06-14 19:42:25,059 INFO] # the device is: mps
+[2024-06-14 19:42:25,070 INFO] # train data length: 3696
+[2024-06-14 19:42:25,070 INFO] # test data length: 192
+[2024-06-14 19:42:25,070 INFO] # val data length: 184
+[2024-06-14 19:42:25,153 INFO] # the number of parameters in the Model: 650429
+[2024-06-14 19:42:25,153 INFO] # the number of parameters in the Encoder: 562748
+[2024-06-14 19:42:25,153 INFO] # the number of parameters in the Decoder: 85790
+[2024-06-14 19:42:25,153 INFO] # the number of parameters in the JointNet: 1891

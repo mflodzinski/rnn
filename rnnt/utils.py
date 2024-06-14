@@ -4,8 +4,6 @@ from logging import Logger
 import logging
 import os
 
-import torch.backends
-import torch.backends.mps
 from torch.utils.tensorboard import SummaryWriter
 import yaml
 import torch
@@ -119,10 +117,9 @@ def log_model_parameters(model: Transducer, logger: Logger):
     logger.info(f"# the number of parameters in the JointNet: {n_params - enc - dec}")
 
 
-def create_visualizer(config: AttrDict, logger: Logger):
+def create_visualizer(config: AttrDict):
     if config.training.visualization:
         visualizer = SummaryWriter(os.path.join(config.data.exp_name, "visualizer"))
-        logger.info("# created a visualizer")
     else:
         visualizer = None
     return visualizer
@@ -193,8 +190,4 @@ def prepare_data_loaders(config: AttrDict, logger: Logger):
         audio_processor,
         text_processor,
     )
-    logger.info(f'# train data length: {train_data.num_examples}')
-    logger.info(f'# test data length: {test_data.num_examples}')
-    logger.info(f'# val data length: {val_data.num_examples}')
-
     return train_data, test_data, val_data, tokenizer

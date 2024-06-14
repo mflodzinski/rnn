@@ -1,0 +1,10 @@
+[2024-06-14 19:44:51,707 INFO] # the device is: mps
+[2024-06-14 19:44:51,791 INFO] # the number of parameters in the Model: 650429
+[2024-06-14 19:44:51,791 INFO] # the number of parameters in the Encoder: 562748
+[2024-06-14 19:44:51,791 INFO] # the number of parameters in the Decoder: 85790
+[2024-06-14 19:44:51,792 INFO] # the number of parameters in the JointNet: 1891
+[2024-06-14 19:45:29,030 INFO] # the device is: mps
+[2024-06-14 19:45:29,112 INFO] # the number of parameters in the Model: 650429
+[2024-06-14 19:45:29,112 INFO] # the number of parameters in the Encoder: 562748
+[2024-06-14 19:45:29,112 INFO] # the number of parameters in the Decoder: 85790
+[2024-06-14 19:45:29,112 INFO] # the number of parameters in the JointNet: 1891

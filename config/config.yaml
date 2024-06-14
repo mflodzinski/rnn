@@ -1,5 +1,5 @@
 data:
-    name: ../timit
+    name: timit
     exp_name: info
     window_type: hamming
     win_size: 400

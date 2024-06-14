@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import torch
 from tokenizer import CharTokenizer
-from typing import List
 
 
 # TODO check types of tensors
@@ -44,7 +43,7 @@ class TextProcessor:
         self.sos_idx = tokenizer.stoi[self.tokenizer.special_tokens["sos"]]
         self.eos_idx = tokenizer.stoi[self.tokenizer.special_tokens["eos"]]
 
-    def get_padded_indices(self, tokens: List[str], max_len: int):
+    def get_padded_indices(self, tokens: list[str], max_len: int):
         ids = self.tokenizer.tokens2ids(tokens)
         ids_length = len(ids)
 
