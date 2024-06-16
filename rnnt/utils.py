@@ -46,7 +46,7 @@ def init_logger(log_file=None):
     return logger
 
 
-def computer_cer(preds, labels):
+def compute_cer(preds, labels):
     dist = sum(editdistance.eval(label, pred) for label, pred in zip(labels, preds))
     total = sum(len(l) for l in labels)
     return dist, total
@@ -144,7 +144,6 @@ def initialize_model(
         model.joint.load_state_dict(checkpoint["joint"])
     else:
         init_parameters(model, type="uniform")
-    model = torch.compile(model)
     model.to(device)
     return model
 
@@ -191,3 +190,14 @@ def prepare_data_loaders(config: AttrDict, logger: Logger):
         text_processor,
     )
     return train_data, test_data, val_data, tokenizer
+
+def add_gaussian_noise(model, device, std_dev=0.075):
+    with torch.no_grad():
+        for param in model.parameters():
+            param.add_(torch.randn(param.size(), device=device) * std_dev)
+
+
+if __name__ == '__main__':
+    from tensorboard import notebook
+    log_dir = 'info'
+    notebook.start("--logdir=" + log_dir)

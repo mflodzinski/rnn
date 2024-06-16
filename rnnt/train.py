@@ -13,6 +13,7 @@ from utils import AttrDict
 from typing import Union
 import utils
 
+
 def train(
     epoch: int,
     config: AttrDict,
@@ -42,6 +43,7 @@ def train(
         start_step_time = time.process_time()
 
         loss = model(inputs, inputs_length, targets, targets_length)
+        loss = loss.mean()
         loss.backward()
         total_loss += loss.item()
 
@@ -141,7 +143,7 @@ def train_model(
         train_data.shuffle()
         train(epoch, config, model, train_data, optimizer, logger, device, visualizer)
 
-        if config.training.evaluate and epoch % config.training.show_every == 0:
+        if config.training.evaluate and epoch % config.training.save_every == 0:
             eval(
                 epoch,
                 model,
@@ -169,3 +171,37 @@ def train_model(
         utils.adjust_learning_rate(optimizer, epoch, config, logger)
 
     logger.info("The training process is OVER!")
+
+
+def main():
+    CONFIG_PATH = "config/config.yaml"
+    torch.set_float32_matmul_precision("high")
+
+    config = utils.load_config(CONFIG_PATH)
+    logger = utils.setup_logger(config)
+    visualizer = utils.create_visualizer(config)
+    device = utils.setup_device(logger)
+
+    train_data, test_data, val_data, tokenizer = utils.prepare_data_loaders(
+        config, logger
+    )
+    model = utils.initialize_model(config, tokenizer.vocab_size, device)
+    optimizer = utils.create_optimizer(model, config.optim)
+    utils.log_model_parameters(model, logger)
+
+    train_model(
+        config=config,
+        model=model,
+        optimizer=optimizer,
+        train_data=train_data,
+        val_data=val_data,
+        test_data=test_data,
+        logger=logger,
+        device=device,
+        visualizer=visualizer,
+        tokenizer=tokenizer,
+    )
+
+
+if __name__ == "__main__":
+    main()

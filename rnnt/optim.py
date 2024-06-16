@@ -28,7 +28,7 @@ class Optimizer(object):
         self.optimizer.load_state_dict(state_dict)
 
     def decay_lr(self):
-        self.lr *= self.decay_ratio
+        self.lr = max(self.decay_ratio * self.lr, config.min_lr)
         for param_group in self.optimizer.param_groups:
             param_group["lr"] = self.lr
 
@@ -49,8 +49,8 @@ def build_optimizer(model, config):
         return optim.AdamW(
             params=params,
             weight_decay=config.weight_decay,
-            lr=float(config.lr),
-            betas=tuple(config.betas),
+            lr=config.lr,
+            betas=tuple(map(float, config.betas.strip('()').split(','))),
             eps=float(config.eps),
             fused=config.fused,
         )
@@ -58,7 +58,7 @@ def build_optimizer(model, config):
         return optim.SGD(
             params=params,
             weight_decay=config.weight_decay,
-            lr=float(config.lr),
+            lr=config.lr,
             momentum=config.momentum,
             nesterov=config.nesterov,
         )

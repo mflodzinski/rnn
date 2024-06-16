@@ -33,7 +33,7 @@ class AudioProcessor:
             for audio_path in df["audio_path"].iloc[start_idx:end_idx]
         ]
         features, features_lengths = zip(*features_lengths_tuples)
-        return torch.cat(features, dim=0), torch.LongTensor(features_lengths)
+        return torch.cat(features, dim=0), torch.tensor(features_lengths, dtype=torch.int32)
 
 
 class TextProcessor:
@@ -49,7 +49,7 @@ class TextProcessor:
 
         ids = [self.sos_idx] + ids + [self.eos_idx]
         ids = ids + [self.pad_idx] * (max_len - ids_length)
-        return torch.tensor(ids), torch.tensor(ids_length)
+        return torch.tensor(ids, dtype=torch.int32), torch.tensor(ids_length, dtype=torch.int32)
 
     def get_max_text_length(self, transcripts: pd.Series):
         return max(len(str(transcript)) for transcript in transcripts)

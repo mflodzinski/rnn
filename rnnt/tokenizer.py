@@ -5,8 +5,8 @@ class CharTokenizer:
     def __init__(self, transcript_path):
         self.special_tokens = {
             "pad": "_",
-            "sos": ">",
-            "eos": "<",
+            "sos": "<",
+            "eos": ">",
             "phi": "|",
         }
         self.vocab = self.get_vocab(transcript_path)
@@ -23,7 +23,19 @@ class CharTokenizer:
         return vocab
 
     def ids2tokens(self, ids):
-        return [self.itos[i] for i in ids]
+        if not ids:
+            return []
+
+        if isinstance(ids[0], list):  # Check if it's a list of lists
+            return [[self.itos[i] for i in sublist] for sublist in ids]
+        else:  # It's a single list
+            return [self.itos[i] for i in ids]
 
     def tokens2ids(self, tokens):
-        return [self.stoi[s] for s in tokens]
+        if not tokens:
+            return []
+
+        if isinstance(tokens[0], list):  # Check if it's a list of lists
+            return [[self.stoi[s] for s in sublist] for sublist in tokens]
+        else:  # It's a single list
+            return [self.stoi[s] for s in tokens]
