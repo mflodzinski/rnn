@@ -164,9 +164,10 @@ def adjust_learning_rate(
 def create_optimizer(model: Transducer, config: AttrDict):
     return Optimizer(model, config)
     
-def prepare_data_loaders(config: AttrDict, logger: Logger):
+def prepare_data_loaders(config: AttrDict):
     tokenizer = CharTokenizer(
-        os.path.join(config.data.name, config.data.core_train)
+        transcript_path=os.path.join(config.data.name, config.data.core_train), 
+        batch_size=config.training.batch_size,
     )
     audio_processor = AudioProcessor(config.data)
     text_processor = TextProcessor(tokenizer)
@@ -191,7 +192,7 @@ def prepare_data_loaders(config: AttrDict, logger: Logger):
     )
     return train_data, test_data, val_data, tokenizer
 
-def add_gaussian_noise(model, device, std_dev=0.075):
+def add_gaussian_noise(model, device, std_dev=0.025):
     with torch.no_grad():
         for param in model.parameters():
             param.add_(torch.randn(param.size(), device=device) * std_dev)
@@ -201,3 +202,5 @@ if __name__ == '__main__':
     from tensorboard import notebook
     log_dir = 'info'
     notebook.start("--logdir=" + log_dir)
+
+# gausian weight noise

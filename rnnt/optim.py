@@ -28,7 +28,7 @@ class Optimizer(object):
         self.optimizer.load_state_dict(state_dict)
 
     def decay_lr(self):
-        self.lr = max(self.decay_ratio * self.lr, config.min_lr)
+        self.lr = max(self.decay_ratio * self.lr, self.config.min_lr)
         for param_group in self.optimizer.param_groups:
             param_group["lr"] = self.lr
 

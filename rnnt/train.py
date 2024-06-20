@@ -62,7 +62,7 @@ def train(
                 f"Learning Rate:{optimizer.lr:.6f}, Grad Norm:{grad_norm:.5f}, Loss:{loss.item():.5f}, "
                 f"AverageLoss:{avg_loss:.5f}, Run Time:{end_step_time - start_step_time:.3f}"
             )
-
+    #utils.add_gaussian_noise(model, device)
     if visualizer is not None:
         visualizer.add_scalar("avg_train_loss", avg_loss, epoch)
 
@@ -182,9 +182,7 @@ def main():
     visualizer = utils.create_visualizer(config)
     device = utils.setup_device(logger)
 
-    train_data, test_data, val_data, tokenizer = utils.prepare_data_loaders(
-        config, logger
-    )
+    train_data, test_data, val_data, tokenizer = utils.prepare_data_loaders(config)
     model = utils.initialize_model(config, tokenizer.vocab_size, device)
     optimizer = utils.create_optimizer(model, config.optim)
     utils.log_model_parameters(model, logger)
