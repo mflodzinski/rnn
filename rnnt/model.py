@@ -6,9 +6,9 @@ from decoder import build_decoder
 
 
 class JointNet(nn.Module):
-    def __init__(self):
+    def __init__(self, inner_size, vocab_size):
         super(JointNet, self).__init__()
-        #self.proj = nn.Linear(inner_size, vocab_size)
+        self.proj = nn.Linear(inner_size, vocab_size)
 
     def forward(self, enc_state, dec_state):
         if enc_state.dim() == 3 and dec_state.dim() == 3:
@@ -23,9 +23,9 @@ class JointNet(nn.Module):
         else:
             assert enc_state.dim() == dec_state.dim()
 
-        #concat_state = torch.cat((enc_state, dec_state), dim=-1)
-        #output = self.proj(concat_state)
-        return enc_state + dec_state
+        concat_state = enc_state + dec_state
+        output = self.proj(concat_state)
+        return output
 
 
 class Transducer(nn.Module):
@@ -36,7 +36,7 @@ class Transducer(nn.Module):
         self.encoder = build_encoder(config)
         self.decoder = build_decoder(config, vocab_size)
 
-        self.joint = JointNet()
+        self.joint = JointNet(config.joint.inner_size, vocab_size)
         self.blank = vocab_size - 1
         try:
             from warprnnt_pytorch import RNNTLoss

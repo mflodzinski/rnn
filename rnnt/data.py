@@ -38,14 +38,14 @@ class AudioProcessor:
 class TextProcessor:
     def __init__(self, tokenizer: CharTokenizer):
         self.tokenizer = tokenizer
-        self.pad_idx = tokenizer.stoi[self.tokenizer.special_tokens["pad"]] if tokenizer.batch_size > 1 else None
-        self.sos_eos_idx = tokenizer.stoi[self.tokenizer.special_tokens["sos_eos"]]
+        self.pad_idx = tokenizer.stoi[self.tokenizer.special_tokens.get("pad", None)]
+        self.sos_idx = tokenizer.stoi[self.tokenizer.special_tokens["sos"]]
+        self.eos_idx = tokenizer.stoi[self.tokenizer.special_tokens["eos"]]
 
     def get_padded_indices(self, tokens: list[str], max_len: int):
         ids = self.tokenizer.tokens2ids(tokens)
         ids_length = len(ids)
-
-        ids = [self.sos_eos_idx] + ids + [self.sos_eos_idx]
+        ids = [self.sos_idx] + ids + [self.eos_idx]
         if self.pad_idx is not None:
             ids = ids + [self.pad_idx] * (max_len - ids_length)
         return torch.tensor(ids, dtype=torch.int32), torch.tensor(ids_length, dtype=torch.int32)

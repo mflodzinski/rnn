@@ -18,26 +18,26 @@ model:
     enc:
         type: lstm
         hidden_size: 128
-        output_size: 29
+        output_size: 30
         num_layers: 2
         bidirectional: True
-        dropout: 0.25
+        dropout: 0.2
     dec:
         type: lstm
         hidden_size: 128
-        output_size: 29
+        output_size: 30
         num_layers: 1
         dropout: 0
     joint:
-        inner_size: 58
+        inner_size: 60
 training:
     seed: 1942
     batch_size: 1
     epochs: 100
-    max_grad_norm: 150
+    max_grad_norm: 100
     show_every: 100
     save_every: 5
-    load_model: info/20.epoch
+    load_model: False
     evaluate: True
     visualization: True
 
@@ -46,8 +46,8 @@ optim:
     begin_to_adjust_lr: 5
     adjust_every: 5
     decay_ratio: 0.9
-    type: adamw
-    lr: 0.0001
+    type: sgd
+    lr: 0.0002
     momentum: 0.9
     weight_decay: 0.01
     betas: (0.9, 0.999)

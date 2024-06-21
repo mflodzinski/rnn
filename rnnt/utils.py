@@ -192,7 +192,7 @@ def prepare_data_loaders(config: AttrDict):
     )
     return train_data, test_data, val_data, tokenizer
 
-def add_gaussian_noise(model, device, std_dev=0.025):
+def add_gaussian_noise(model, device, std_dev=0.01):
     with torch.no_grad():
         for param in model.parameters():
             param.add_(torch.randn(param.size(), device=device) * std_dev)
@@ -204,3 +204,4 @@ if __name__ == '__main__':
     notebook.start("--logdir=" + log_dir)
 
 # gausian weight noise
+# check loss on test set

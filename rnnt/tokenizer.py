@@ -4,7 +4,8 @@ import pandas as pd
 class CharTokenizer:
     def __init__(self, transcript_path, batch_size):
         self.special_tokens = {
-            "sos_eos": "^",
+            "sos": "<",
+            "eos": ">",
             "phi": "|",
         }
         self.batch_size = batch_size

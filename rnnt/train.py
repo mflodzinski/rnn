@@ -62,7 +62,7 @@ def train(
                 f"Learning Rate:{optimizer.lr:.6f}, Grad Norm:{grad_norm:.5f}, Loss:{loss.item():.5f}, "
                 f"AverageLoss:{avg_loss:.5f}, Run Time:{end_step_time - start_step_time:.3f}"
             )
-    #utils.add_gaussian_noise(model, device)
+    utils.add_gaussian_noise(model, device)
     if visualizer is not None:
         visualizer.add_scalar("avg_train_loss", avg_loss, epoch)
 
@@ -175,7 +175,7 @@ def train_model(
 
 def main():
     CONFIG_PATH = "config/config.yaml"
-    torch.set_float32_matmul_precision("high")
+    #torch.set_float32_matmul_precision("high")
 
     config = utils.load_config(CONFIG_PATH)
     logger = utils.setup_logger(config)
